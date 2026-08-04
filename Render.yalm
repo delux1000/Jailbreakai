@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ollama
+    runtime: image
+    plan: free
+    disk:
+      name: ollama-models
+      mountPath: /root/.ollama
+      sizeGB: 10
+    envVars:
+      - key: OLLAMA_HOST
+        value: 0.0.0.0
