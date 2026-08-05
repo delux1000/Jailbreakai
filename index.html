@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pastor JailbreakAI Chat</title>
+    <title>JailbreakAI Chat</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /* ── Reset & Dark Theme ── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background: #0d1117;
@@ -48,7 +45,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .chat-header .status-group {
+        .status-group {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -62,17 +59,9 @@
             font-size: 12px;
             font-weight: 500;
         }
-        .status.offline {
-            background: #da3633;
-        }
-        .status.loading {
-            background: #d29922;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+        .status.offline { background: #da3633; }
+        .status.loading { background: #d29922; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
         .model-badge {
             color: #8b949e;
             font-size: 12px;
@@ -98,10 +87,7 @@
             word-wrap: break-word;
             animation: fadeIn 0.3s ease;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .message.user {
             align-self: flex-end;
             background: #238636;
@@ -114,12 +100,8 @@
             border: 1px solid #30363d;
             border-bottom-left-radius: 4px;
         }
-        .message .typing-dots {
-            display: inline-flex;
-            gap: 4px;
-            padding: 4px 0;
-        }
-        .message .typing-dots span {
+        .typing-dots { display: inline-flex; gap: 4px; padding: 4px 0; }
+        .typing-dots span {
             display: inline-block;
             width: 8px;
             height: 8px;
@@ -127,18 +109,16 @@
             background: #8b949e;
             animation: dotBounce 1.4s infinite;
         }
-        .message .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .message .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes dotBounce {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
-            30% { transform: translateY(-6px); opacity: 1; }
-        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dotBounce { 0%,60%,100%{transform:translateY(0);opacity:0.3;} 30%{transform:translateY(-6px);opacity:1;} }
         .input-area {
             padding: 16px 24px;
             border-top: 1px solid #30363d;
             display: flex;
             gap: 12px;
             background: #0d1117;
+            flex-wrap: wrap;
         }
         .input-area input {
             flex: 1;
@@ -149,14 +129,9 @@
             color: #e6edf3;
             font-size: 15px;
             outline: none;
-            transition: border-color 0.2s;
+            min-width: 150px;
         }
-        .input-area input:focus {
-            border-color: #58a6ff;
-        }
-        .input-area input::placeholder {
-            color: #484f58;
-        }
+        .input-area input:focus { border-color: #58a6ff; }
         .input-area button {
             padding: 12px 28px;
             border: none;
@@ -166,20 +141,10 @@
             font-weight: 600;
             font-size: 15px;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            white-space: nowrap;
+            transition: background 0.2s;
         }
-        .input-area button:hover {
-            background: #2ea043;
-        }
-        .input-area button:active {
-            transform: scale(0.97);
-        }
-        .input-area button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
+        .input-area button:hover { background: #2ea043; }
+        .input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
         .bottom-bar {
             padding: 8px 24px;
             background: #0d1117;
@@ -191,12 +156,7 @@
             gap: 8px;
             font-size: 13px;
         }
-        .bottom-bar .model-selector {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .bottom-bar select {
+        .bottom-bar select, .bottom-bar input[type="text"] {
             background: #161b22;
             color: #e6edf3;
             border: 1px solid #30363d;
@@ -205,22 +165,15 @@
             font-size: 13px;
             outline: none;
         }
-        .bottom-bar select:focus {
-            border-color: #58a6ff;
-        }
-        .bottom-bar .hint {
-            color: #484f58;
-            font-size: 12px;
-        }
+        .bottom-bar select:focus, .bottom-bar input:focus { border-color: #58a6ff; }
+        .hint { color: #484f58; font-size: 12px; }
         .error-msg {
             color: #f85149;
             font-size: 13px;
             padding: 4px 24px 8px;
             display: none;
         }
-        .error-msg.show {
-            display: block;
-        }
+        .error-msg.show { display: block; }
         .clear-btn {
             background: none;
             border: none;
@@ -230,33 +183,16 @@
             padding: 2px 10px;
             border-radius: 4px;
         }
-        .clear-btn:hover {
-            color: #e6edf3;
-            background: #21262d;
-        }
-
-        /* Scrollbar styling */
-        .messages::-webkit-scrollbar {
-            width: 6px;
-        }
-        .messages::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .messages::-webkit-scrollbar-thumb {
-            background: #30363d;
-            border-radius: 4px;
-        }
-        .messages::-webkit-scrollbar-thumb:hover {
-            background: #484f58;
-        }
-
+        .clear-btn:hover { color: #e6edf3; background: #21262d; }
+        .messages::-webkit-scrollbar { width: 6px; }
+        .messages::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
         @media (max-width: 600px) {
-            .chat-container { height: 96vh; border-radius: 0; padding: 0; }
+            .chat-container { height: 96vh; border-radius: 0; }
             .messages { padding: 16px; }
-            .input-area { padding: 12px 16px; flex-wrap: wrap; }
+            .input-area { padding: 12px 16px; }
             .input-area input { font-size: 16px; }
             .input-area button { width: 100%; }
-            .bottom-bar { flex-direction: column; align-items: stretch; gap: 4px; }
+            .bottom-bar { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
@@ -265,9 +201,9 @@
 <div class="chat-container">
     <!-- Header -->
     <div class="chat-header">
-        <h1>🤖 pastor JailbreakAI</h1>
+        <h1>🤖 JailbreakAI</h1>
         <div class="status-group">
-            <span class="model-badge" id="modelDisplay">dolphin-mistral</span>
+            <span class="model-badge" id="modelDisplay">llama3.2:3b</span>
             <span class="status" id="status">● Online</span>
         </div>
     </div>
@@ -275,27 +211,34 @@
     <!-- Messages -->
     <div class="messages" id="messages">
         <div class="message assistant" style="opacity:0.7;">
-            👋 I'm created by pastor. Ask me anything — no filters, no limits, no restricted.
+            👋 I'm your private AI. <br />
+            <span style="font-size:13px; color:#8b949e;">
+                Using <strong id="activeBackendLabel">Ollama</strong> on Render.
+            </span>
         </div>
     </div>
 
     <!-- Error -->
     <div class="error-msg" id="errorMsg">⚠️ Connection error</div>
 
-    <!-- Bottom bar: model selector + clear -->
+    <!-- Bottom Bar: Model + Backend + Clear -->
     <div class="bottom-bar">
-        <div class="model-selector">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <label for="modelSelect">Model</label>
             <select id="modelSelect">
-                <option value="dolphin-mistral">dolphin-mistral</option>
                 <option value="llama3.2:3b">llama3.2:3b</option>
+                <option value="dolphin-mistral">dolphin-mistral</option>
                 <option value="mistral">mistral</option>
-                <option value="llama3.1:8b">llama3.1:8b</option>
+            </select>
+            <label for="backendSelect" style="margin-left:8px;">Backend</label>
+            <select id="backendSelect">
+                <option value="ollama">Ollama (self-hosted)</option>
+                <option value="groq">Groq (API key)</option>
             </select>
         </div>
         <div>
             <button class="clear-btn" id="clearBtn">🗑️ Clear chat</button>
-            <span class="hint">| self-hosted on Render</span>
+            <span class="hint">| free & private</span>
         </div>
     </div>
 
@@ -308,9 +251,13 @@
 
 <script>
     // ============================================================
-    // CONFIG — YOUR RENDER URL
+    // CONFIGURATION
     // ============================================================
-    const API_URL = 'https://jailbreakai.onrender.com/api/generate';
+    const OLLAMA_URL = 'https://jailbreakai.onrender.com/api/generate';
+    // Groq (free tier) — get your key at https://console.groq.com
+    const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+    // You can hardcode your Groq key here or prompt the user
+    let GROQ_API_KEY = ''; // leave empty to prompt on first use
 
     // ============================================================
     // DOM refs
@@ -319,20 +266,27 @@
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
     const modelSelect = document.getElementById('modelSelect');
+    const backendSelect = document.getElementById('backendSelect');
     const modelDisplay = document.getElementById('modelDisplay');
     const statusEl = document.getElementById('status');
     const errorEl = document.getElementById('errorMsg');
     const clearBtn = document.getElementById('clearBtn');
+    const activeBackendLabel = document.getElementById('activeBackendLabel');
 
     let isWaiting = false;
-    let conversationHistory = [];
 
     // ============================================================
-    // Update model display
+    // Update UI labels
     // ============================================================
+    function updateBackendLabel() {
+        const backend = backendSelect.value;
+        activeBackendLabel.textContent = backend === 'ollama' ? 'Ollama' : 'Groq';
+    }
+    backendSelect.addEventListener('change', updateBackendLabel);
     modelSelect.addEventListener('change', () => {
         modelDisplay.textContent = modelSelect.value;
     });
+    updateBackendLabel();
 
     // ============================================================
     // Add message
@@ -340,11 +294,8 @@
     function addMessage(role, content, isHTML = false) {
         const div = document.createElement('div');
         div.className = `message ${role}`;
-        if (isHTML) {
-            div.innerHTML = content;
-        } else {
-            div.textContent = content;
-        }
+        if (isHTML) div.innerHTML = content;
+        else div.textContent = content;
         messagesEl.appendChild(div);
         messagesEl.scrollTop = messagesEl.scrollHeight;
         return div;
@@ -381,40 +332,60 @@
         statusEl.className = 'status loading';
 
         const model = modelSelect.value;
+        const backend = backendSelect.value;
         const typingEl = showTyping();
 
         try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: model,
-                    prompt: prompt,
-                    stream: false,
-                    options: {
-                        num_ctx: 4096,
-                        temperature: 0.7
-                    }
-                })
-            });
+            let response, data;
 
-            typingEl.remove();
-
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(`Server ${response.status}: ${text.slice(0, 100)}`);
-            }
-
-            const data = await response.json();
-
-            if (data.response) {
+            if (backend === 'ollama') {
+                // ── Ollama backend ──
+                response = await fetch(OLLAMA_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: model,
+                        prompt: prompt,
+                        stream: false,
+                        options: { num_ctx: 4096 }
+                    })
+                });
+                if (!response.ok) throw new Error(`Ollama error ${response.status}`);
+                data = await response.json();
+                if (!data.response) throw new Error('No response from Ollama');
                 addMessage('assistant', data.response);
-                conversationHistory.push({ role: 'user', content: prompt });
-                conversationHistory.push({ role: 'assistant', content: data.response });
-            } else if (data.error) {
-                throw new Error(data.error);
+
             } else {
-                throw new Error('Unexpected response');
+                // ── Groq backend ──
+                if (!GROQ_API_KEY) {
+                    const key = prompt('Enter your Groq API key (get free at console.groq.com):');
+                    if (!key) throw new Error('API key required');
+                    GROQ_API_KEY = key;
+                }
+                response = await fetch(GROQ_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GROQ_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'mixtral-8x7b-32768',
+                        messages: [{ role: 'user', content: prompt }],
+                        temperature: 0.7
+                    })
+                });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    if (response.status === 401) {
+                        GROQ_API_KEY = ''; // invalid key, reset
+                        throw new Error('Invalid API key. Please re-enter.');
+                    }
+                    throw new Error(`Groq error ${response.status}: ${errText}`);
+                }
+                data = await response.json();
+                const content = data.choices?.[0]?.message?.content;
+                if (!content) throw new Error('No content from Groq');
+                addMessage('assistant', content);
             }
 
             statusEl.textContent = '● Online';
@@ -423,18 +394,19 @@
         } catch (error) {
             typingEl.remove();
             addMessage('assistant', `⚠️ Error: ${error.message}`);
-            errorEl.textContent = `Can't reach ${API_URL} — is your Render instance running?`;
+            errorEl.textContent = error.message;
             errorEl.classList.add('show');
             statusEl.textContent = '● Offline';
             statusEl.className = 'status offline';
         }
 
+        typingEl.remove(); // in case it's still there
         isWaiting = false;
         sendBtn.disabled = false;
     }
 
     // ============================================================
-    // Enter to send
+    // Event listeners
     // ============================================================
     userInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -444,24 +416,28 @@
     });
     sendBtn.addEventListener('click', sendMessage);
 
-    // ============================================================
-    // Clear chat
-    // ============================================================
     clearBtn.addEventListener('click', () => {
         messagesEl.innerHTML = `
             <div class="message assistant" style="opacity:0.7;">
-                🗑️ Chat cleared. Ask me anything.
+                🗑️ Chat cleared. Ask me anything.<br />
+                <span style="font-size:13px; color:#8b949e;">
+                    Using <strong>${backendSelect.value === 'ollama' ? 'Ollama' : 'Groq'}</strong>.
+                </span>
             </div>
         `;
-        conversationHistory = [];
     });
 
     // ============================================================
-    // Health check
+    // Health check for Ollama (only if backend is Ollama)
     // ============================================================
     async function checkHealth() {
+        if (backendSelect.value !== 'ollama') {
+            statusEl.textContent = '● Using Groq';
+            statusEl.className = 'status';
+            return;
+        }
         try {
-            const res = await fetch(API_URL.replace('/api/generate', '/'), {
+            const res = await fetch(OLLAMA_URL.replace('/api/generate', '/'), {
                 signal: AbortSignal.timeout(5000)
             });
             if (res.ok) {
@@ -481,8 +457,7 @@
 
     // Focus
     userInput.focus();
-
-    console.log(`🚀 JailbreakAI connected to ${API_URL}`);
+    console.log(`🚀 Chat ready — backend: ${backendSelect.value}`);
 </script>
 </body>
 </html>
