@@ -6,7 +6,11 @@
     <title>JailbreakAI Chat</title>
     <style>
         /* ── Reset & Dark Theme ── */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background: #0d1117;
@@ -132,6 +136,7 @@
             min-width: 150px;
         }
         .input-area input:focus { border-color: #58a6ff; }
+        .input-area input::placeholder { color: #484f58; }
         .input-area button {
             padding: 12px 28px;
             border: none;
@@ -156,7 +161,7 @@
             gap: 8px;
             font-size: 13px;
         }
-        .bottom-bar select, .bottom-bar input[type="text"] {
+        .bottom-bar select {
             background: #161b22;
             color: #e6edf3;
             border: 1px solid #30363d;
@@ -165,7 +170,7 @@
             font-size: 13px;
             outline: none;
         }
-        .bottom-bar select:focus, .bottom-bar input:focus { border-color: #58a6ff; }
+        .bottom-bar select:focus { border-color: #58a6ff; }
         .hint { color: #484f58; font-size: 12px; }
         .error-msg {
             color: #f85149;
@@ -203,7 +208,7 @@
     <div class="chat-header">
         <h1>🤖 JailbreakAI</h1>
         <div class="status-group">
-            <span class="model-badge" id="modelDisplay">llama3.2:3b</span>
+            <span class="model-badge" id="modelDisplay">tinyllama</span>
             <span class="status" id="status">● Online</span>
         </div>
     </div>
@@ -211,9 +216,9 @@
     <!-- Messages -->
     <div class="messages" id="messages">
         <div class="message assistant" style="opacity:0.7;">
-            👋 I'm your private AI. <br />
+            👋 I'm your private AI running on Ubuntu.<br />
             <span style="font-size:13px; color:#8b949e;">
-                Using <strong id="activeBackendLabel">Ollama</strong> on Render.
+                Server: <strong>72.51.57.154</strong> | Model: <strong id="welcomeModel">tinyllama</strong>
             </span>
         </div>
     </div>
@@ -221,24 +226,20 @@
     <!-- Error -->
     <div class="error-msg" id="errorMsg">⚠️ Connection error</div>
 
-    <!-- Bottom Bar: Model + Backend + Clear -->
+    <!-- Bottom Bar: Model + Clear -->
     <div class="bottom-bar">
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <label for="modelSelect">Model</label>
             <select id="modelSelect">
+                <option value="tinyllama">tinyllama</option>
                 <option value="llama3.2:3b">llama3.2:3b</option>
                 <option value="dolphin-mistral">dolphin-mistral</option>
-                <option value="mistral">mistral</option>
-            </select>
-            <label for="backendSelect" style="margin-left:8px;">Backend</label>
-            <select id="backendSelect">
-                <option value="ollama">Ollama (self-hosted)</option>
-                <option value="groq">Groq (API key)</option>
+                <option value="llama3.1:8b">llama3.1:8b</option>
             </select>
         </div>
         <div>
             <button class="clear-btn" id="clearBtn">🗑️ Clear chat</button>
-            <span class="hint">| free & private</span>
+            <span class="hint">| self-hosted on Ubuntu</span>
         </div>
     </div>
 
@@ -251,13 +252,16 @@
 
 <script>
     // ============================================================
-    // CONFIGURATION
+    // CONFIGURATION — UPDATE THIS WITH YOUR SERVER
     // ============================================================
-    const OLLAMA_URL = 'https://jailbreakai.onrender.com/api/generate';
-    // Groq (free tier) — get your key at https://console.groq.com
-    const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-    // You can hardcode your Groq key here or prompt the user
-    let GROQ_API_KEY = ''; // leave empty to prompt on first use
+    // Option 1: Direct to your Ubuntu server
+    const API_URL = 'http://72.51.57.154:11434/api/generate';
+    
+    // Option 2: If using SSH tunnel, use this instead:
+    // const API_URL = 'http://localhost:11434/api/generate';
+    
+    // Option 3: If using ngrok, use:
+    // const API_URL = 'https://YOUR_NGROK_URL/api/generate';
 
     // ============================================================
     // DOM refs
@@ -266,27 +270,21 @@
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
     const modelSelect = document.getElementById('modelSelect');
-    const backendSelect = document.getElementById('backendSelect');
     const modelDisplay = document.getElementById('modelDisplay');
     const statusEl = document.getElementById('status');
     const errorEl = document.getElementById('errorMsg');
     const clearBtn = document.getElementById('clearBtn');
-    const activeBackendLabel = document.getElementById('activeBackendLabel');
+    const welcomeModel = document.getElementById('welcomeModel');
 
     let isWaiting = false;
 
     // ============================================================
-    // Update UI labels
+    // Update model display
     // ============================================================
-    function updateBackendLabel() {
-        const backend = backendSelect.value;
-        activeBackendLabel.textContent = backend === 'ollama' ? 'Ollama' : 'Groq';
-    }
-    backendSelect.addEventListener('change', updateBackendLabel);
     modelSelect.addEventListener('change', () => {
         modelDisplay.textContent = modelSelect.value;
+        welcomeModel.textContent = modelSelect.value;
     });
-    updateBackendLabel();
 
     // ============================================================
     // Add message
@@ -332,60 +330,35 @@
         statusEl.className = 'status loading';
 
         const model = modelSelect.value;
-        const backend = backendSelect.value;
         const typingEl = showTyping();
 
         try {
-            let response, data;
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: model,
+                    prompt: prompt,
+                    stream: false,
+                    options: { num_ctx: 4096 }
+                })
+            });
 
-            if (backend === 'ollama') {
-                // ── Ollama backend ──
-                response = await fetch(OLLAMA_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: model,
-                        prompt: prompt,
-                        stream: false,
-                        options: { num_ctx: 4096 }
-                    })
-                });
-                if (!response.ok) throw new Error(`Ollama error ${response.status}`);
-                data = await response.json();
-                if (!data.response) throw new Error('No response from Ollama');
+            typingEl.remove();
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`Server ${response.status}: ${text.slice(0, 100)}`);
+            }
+
+            const data = await response.json();
+
+            if (data.response) {
                 addMessage('assistant', data.response);
-
+            } else if (data.error) {
+                throw new Error(data.error);
             } else {
-                // ── Groq backend ──
-                if (!GROQ_API_KEY) {
-                    const key = prompt('Enter your Groq API key (get free at console.groq.com):');
-                    if (!key) throw new Error('API key required');
-                    GROQ_API_KEY = key;
-                }
-                response = await fetch(GROQ_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${GROQ_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'mixtral-8x7b-32768',
-                        messages: [{ role: 'user', content: prompt }],
-                        temperature: 0.7
-                    })
-                });
-                if (!response.ok) {
-                    const errText = await response.text();
-                    if (response.status === 401) {
-                        GROQ_API_KEY = ''; // invalid key, reset
-                        throw new Error('Invalid API key. Please re-enter.');
-                    }
-                    throw new Error(`Groq error ${response.status}: ${errText}`);
-                }
-                data = await response.json();
-                const content = data.choices?.[0]?.message?.content;
-                if (!content) throw new Error('No content from Groq');
-                addMessage('assistant', content);
+                throw new Error('Unexpected response');
             }
 
             statusEl.textContent = '● Online';
@@ -394,13 +367,12 @@
         } catch (error) {
             typingEl.remove();
             addMessage('assistant', `⚠️ Error: ${error.message}`);
-            errorEl.textContent = error.message;
+            errorEl.textContent = `Can't reach ${API_URL} — is your Ubuntu server running?`;
             errorEl.classList.add('show');
             statusEl.textContent = '● Offline';
             statusEl.className = 'status offline';
         }
 
-        typingEl.remove(); // in case it's still there
         isWaiting = false;
         sendBtn.disabled = false;
     }
@@ -421,23 +393,19 @@
             <div class="message assistant" style="opacity:0.7;">
                 🗑️ Chat cleared. Ask me anything.<br />
                 <span style="font-size:13px; color:#8b949e;">
-                    Using <strong>${backendSelect.value === 'ollama' ? 'Ollama' : 'Groq'}</strong>.
+                    Server: <strong>72.51.57.154</strong> | Model: <strong>${modelSelect.value}</strong>
                 </span>
             </div>
         `;
     });
 
     // ============================================================
-    // Health check for Ollama (only if backend is Ollama)
+    // Health check
     // ============================================================
     async function checkHealth() {
-        if (backendSelect.value !== 'ollama') {
-            statusEl.textContent = '● Using Groq';
-            statusEl.className = 'status';
-            return;
-        }
         try {
-            const res = await fetch(OLLAMA_URL.replace('/api/generate', '/'), {
+            // Check if server is reachable
+            const res = await fetch(API_URL.replace('/api/generate', '/'), {
                 signal: AbortSignal.timeout(5000)
             });
             if (res.ok) {
@@ -447,8 +415,8 @@
                 throw new Error('Not ready');
             }
         } catch {
-            statusEl.textContent = '● Cold start?';
-            statusEl.className = 'status loading';
+            statusEl.textContent = '● Offline';
+            statusEl.className = 'status offline';
         }
     }
 
@@ -457,7 +425,7 @@
 
     // Focus
     userInput.focus();
-    console.log(`🚀 Chat ready — backend: ${backendSelect.value}`);
+    console.log(`🚀 Chat connected to ${API_URL}`);
 </script>
 </body>
 </html>
